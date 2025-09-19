@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulir Perpulangan Mahasiswa</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Perbaiki URL CDN (hapus spasi) -->
+  <script src="https://cdn.tailwindcss.com  "></script>
+  <!-- Tambahkan Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2  "></script>
+</head>
+<body class="min-h-screen flex items-center justify-center text-white bg-gray-900">
+  
+  <div class="card w-full max-w-2xl bg-gray-800 rounded-lg shadow-xl p-6">
+    <img src="./img/cropped-WhatsApp-Image-2021-03-03-at-10.21.34-2-removebg-preview.png" alt="Logo Asrama" class="mx-auto mb-6 h-20">
+    <h2 class="text-2xl font-bold text-center mb-6 text-blue-300">Formulir Perpulangan Mahasantri Asrama Unggulan</h2>
+
+    <form id="formulir" class="space-y-4">
+      <div>
+        <label class="block text-gray-300 mb-1">Nama</label>
+        <input type="text" id="nama" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-300 mb-1">Program</label>
+        <select id="program" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+          <option value="">Pilih Program</option>
+          <option value="FK">FK</option>
+          <option value="KADER">KADER</option>
+          <option value="REGULER">REGULER</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-gray-300 mb-1">Gender</label>
+        <select id="gender" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+          <option value="">Pilih Gender</option>
+          <option value="Putra">Putra</option>
+          <option value="Putri">Putri</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-gray-300 mb-1">Identitas Kamar (Lantai)</label>
+        <input type="text" id="kamar" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-300 mb-1">Alamat Tujuan</label>
+        <input type="text" id="alamat" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-300 mb-1">Waktu Check Out</label>
+        <input type="datetime-local" id="checkout" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-300 mb-1">Waktu Kembali</label>
+        <input type="datetime-local" id="kembali" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+      </div>
+
+      <!-- Bagian Verifikasi Wajah (Unggah Foto) DIHAPUS -->
+
+      <div>
+        <label class="block text-gray-300 mb-1">Keperluan</label>
+        <textarea id="keperluan" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="3" required></textarea>
+      </div>
+
+      <button type="submit" class="btn-glow w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors duration-200">
+        Kirim Formulir
+      </button>
+    </form>
+
+    <div class="text-center mt-8">
+      <button id="adminBtn" class="btn-glow px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200">
+        Admin Panel
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Password -->
+  <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+    <div class="card w-96 bg-gray-800 rounded-lg shadow-2xl p-6">
+      <h3 class="text-xl font-bold mb-4 text-center text-blue-300">Masukkan Password Admin</h3>
+      <input type="password" id="adminPass" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white mb-4" placeholder="Password" required>
+      <button onclick="checkPassword()" class="btn-glow w-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors duration-200">
+        Masuk
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Konfigurasi Supabase (Perbaiki URL, hapus spasi)
+    const SUPABASE_URL = "https://ptcfelcrjhgpxcgeawju.supabase.co  ";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2ZlbGNyamhncHhjZ2Vhd2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNjM3NDUsImV4cCI6MjA3MzgzOTc0NX0.U6XUGTBG_Ygr_Ida3dp4KqjSrJceqOQlJmHTOe6pGCU";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Event listener untuk submit formulir
+    document.getElementById("formulir").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const nama = document.getElementById("nama").value.trim();
+      const program = document.getElementById("program").value;
+      const gender = document.getElementById("gender").value;
+      const kamar = document.getElementById("kamar").value.trim();
+      const alamat = document.getElementById("alamat").value.trim();
+      const checkout = document.getElementById("checkout").value;
+      const kembali = document.getElementById("kembali").value;
+      const keperluan = document.getElementById("keperluan").value.trim();
+      
+      // Validasi dasar (tanpa foto)
+      if (!nama || !program || !gender || !kamar || !alamat || !checkout || !kembali || !keperluan) {
+        alert("Semua field wajib diisi!");
+        return;
+      }
+
+      try {
+        // Simpan data ke tabel perpulangan_mahasiswa (tanpa kolom verifikasi_wajah)
+        const { data: insertData, error } = await supabaseClient
+          .from('perpulangan_mahasiswa')
+          .insert([
+            {
+              nama: nama,
+              program: program,
+              gender: gender,
+              kamar: kamar,
+              alamat_tujuan: alamat,
+              waktu_checkout: checkout,
+              waktu_kembali: kembali,
+              keperluan: keperluan
+              // Kolom 'verifikasi_wajah' dihapus dari sini
+            }
+          ]);
+        
+        if (error) throw error;
+        
+        alert("✅ Data berhasil disimpan! Terima kasih.");
+        document.getElementById("formulir").reset(); // Reset form
+        
+      } catch (error) {
+        console.error("Error:", error);
+        alert("❌ Terjadi kesalahan saat menyimpan data: " + (error.message || "Silakan coba lagi."));
+      }
+    });
+
+    // Event listener untuk modal admin
+    document.getElementById("adminBtn").addEventListener("click", () => {
+      document.getElementById("passwordModal").classList.remove("hidden");
+      document.getElementById("passwordModal").classList.add("flex");
+    });
+
+    function checkPassword() {
+      const pass = document.getElementById("adminPass").value;
+      if (pass === "asrama_unggulan") {
+        window.location.href = "https://supabase.com/"; // Arahkan ke halaman admin lokal
+      } else {
+        alert("❌ Password salah!");
+      }
+    }
+  </script>
+</body>
+</html> 

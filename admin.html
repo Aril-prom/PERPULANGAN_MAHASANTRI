@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+  <img src="cropped-WhatsApp-Image-2021-03-03-at-10.21.34-2.jpeg" alt="Logo Asrama" class="mx-auto mb-6 h-20">
+  <h2 class="text-3xl font-bold text-center mb-8 text-gray-800">Data Perpulangan Mahasantri Asrama Unggulan</h2>
+
+  <!-- Filter -->
+  <div class="flex gap-4 mb-8 bg-white p-6 rounded-lg shadow-md">
+    <label for="filterDate" class="flex items-center text-gray-700">Filter Tanggal:</label>
+    <input type="date" id="filterDate" class="p-2 border border-gray-300 rounded-md">
+    <button onclick="loadData()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200">Filter</button>
+    <button onclick="exportExcel()" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200">Download Excel</button>
+  </div>
+
+  <!-- Tabel Data -->
+  <div class="card overflow-x-auto bg-white rounded-lg shadow-md">
+    <table class="min-w-full text-left">
+      <thead>
+        <tr class="bg-gray-700 text-white">
+          <th class="py-3 px-4">Nama</th>
+          <th class="py-3 px-4">Program</th>
+          <th class="py-3 px-4">Gender</th>
+          <th class="py-3 px-4">Kamar</th>
+          <th class="py-3 px-4">Alamat Tujuan</th>
+          <th class="py-3 px-4">Check Out</th>
+          <th class="py-3 px-4">Kembali</th>
+          <th class="py-3 px-4">Keperluan</th>
+          <th class="py-3 px-4">Verifikasi Wajah</th>
+        </tr>
+      </thead>
+      <tbody id="dataTable">
+        <tr>
+          <td colspan="9" class="py-4 text-center text-gray-500">Tidak ada data.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // ✅ PASTIKAN TIDAK ADA SPASI DI URL DAN KEY!
+    const SUPABASE_URL = "https://ptcfelcrjhgpxcgeawju.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2ZlbGNyamhncHhjZ2Vhd2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNjM3NDUsImV4cCI6MjA3MzgzOTc0NX0.U6XUGTBG_Ygr_Ida3dp4KqjSrJceqOQlJmHTOe6pGCU";
+
+    // Buat client Supabase
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Fungsi utama untuk memuat data
+    async function loadData(){
+      console.log("Memuat data dari Supabase...");
+
+      // Ambil nilai tanggal filter
+      const date = document.getElementById("filterDate").value;
+
+      // Buat query dasar
+      let query = supabaseClient
+        .from("perpulangan_mahasiswa")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      // Jika ada tanggal filter, tambahkan kondisi
+      if(date){
+        const startOfDay = `${date}T00:00:00`;
+        const endOfDay = `${date}T23:59:59`;
+        query = query.gte("created_at", startOfDay).lte("created_at", endOfDay);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("ERROR: ", error);
+        alert("Gagal mengambil data dari server: " + error.message);
+        return;
+      }
+
+      console.log("Data diterima:", data); // Ini akan menunjukkan data yang benar-benar didapat
+
+      const table = document.getElementById("dataTable");
+      table.innerHTML = ""; // Kosongkan tabel
+
+      if (!data || data.length === 0) {
+        table.innerHTML = `
+          <tr>
+            <td colspan="9" class="py-4 text-center text-gray-500">Tidak ada data.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Isi tabel dengan data
+      data.forEach(row => {
+        // Pastikan kita hanya mengakses kolom yang ada
+        const fotoUrl = row.verifikasi_wajah ? 
+          `<a href="${row.verifikasi_wajah}" target="_blank" class="text-blue-500 hover:underline">Lihat Foto</a>` : 
+          `<span class="text-gray-400">-</span>`;
+
+        table.innerHTML += `
+          <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+            <td class="py-3 px-4">${row.nama || "-"}</td>
+            <td class="py-3 px-4">${row.program || "-"}</td>
+            <td class="py-3 px-4">${row.gender || "-"}</td>
+            <td class="py-3 px-4">${row.kamar || "-"}</td>
+            <td class="py-3 px-4">${row.alamat_tujuan || "-"}</td>
+            <td class="py-3 px-4">${row.waktu_checkout || "-"}</td>
+            <td class="py-3 px-4">${row.waktu_kembali || "-"}</td>
+            <td class="py-3 px-4">${row.keperluan || "-"}</td>
+            <td class="py-3 px-4">${fotoUrl}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Fungsi ekspor Excel
+    async function exportExcel(){
+      console.log("Mengekspor data ke Excel...");
+      const { data, error } = await supabaseClient
+        .from("perpulangan_mahasiswa")
+        .select("*");
+
+      if (error) {
+        alert("Gagal mengambil data untuk diekspor: " + error.message);
+        return;
+      }
+
+      // Bersihkan data untuk Excel
+      const cleanData = data.map(row => ({
+        Nama: row.nama,
+        Program: row.program,
+        Gender: row.gender,
+        Kamar: row.kamar,
+        'Alamat Tujuan': row.alamat_tujuan,
+        'Check Out': row.waktu_checkout,
+        'Kembali': row.waktu_kembali,
+        Keperluan: row.keperluan,
+        'Verifikasi Wajah': row.verifikasi_wajah ? 'Ada' : '-'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(cleanData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Perpulangan");
+      XLSX.writeFile(workbook, "data_perpulangan.xlsx");
+    }
+
+    // Jalankan saat halaman dimuat
+    loadData();
+  </script>
+</body>
+</html>
